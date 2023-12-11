@@ -9,8 +9,7 @@ void strbuf_attach(struct strbuf *sb, void *str, size_t len, size_t alloc)//ok
 {
     sb->alloc=alloc;
     strbuf_grow(sb,len+1);
-    memcpy(sb->buf,(char*)str,len);
-    (sb->buf)[len]='\0';
+    sb->buf=(char*)str;
     strbuf_setlen(sb,len);
 }
 void strbuf_release(struct strbuf *sb)//ok
@@ -34,21 +33,22 @@ char *strbuf_detach(struct strbuf *sb, size_t *sz)//ok
 int strbuf_cmp(const struct strbuf *first, const struct strbuf *second)//ok
 {
     int n;
-    if(first->alloc==second->alloc)
+    if(first->len==second->len)
     {      
-        if(memcmp(first->buf,second->buf,first->alloc)==0)
+        if(memcmp(first->buf,second->buf,first->len)==0)
         {
-            n=1;
+            n=0;
         }
         else
         {
-            n=0;
+            n=1;
         }
     }
     else
     {
-        return n;
+        n=first->len-second->len;
     }
+    return n;
 }
 void strbuf_reset(struct strbuf *sb)//ok
 {
@@ -77,7 +77,6 @@ void strbuf_addch(struct strbuf *sb, int c)//ok
 {
     strbuf_grow(sb,1);
     (sb->buf)[sb->len]=c;
-    (sb->buf)[sb->len+1]='\0';
     strbuf_setlen(sb,sb->len+1);
 }
 void strbuf_addstr(struct strbuf *sb, const char *s)//ok
@@ -90,13 +89,13 @@ void strbuf_addbuf(struct strbuf *sb, const struct strbuf *sb2)//ok
 {
     strbuf_grow(sb,sb2->len);
     memcpy(sb->buf+sb->len,sb2->buf,sb2->len);
-    (sb->buf)[sb->len+sb2->len]='\0';
     //strcat(sb->buf,sb2->buf);
     strbuf_setlen(sb,sb->len+sb2->len);
 }
 void strbuf_setlen(struct strbuf *sb, size_t len)//ok
 {
     sb->len=len;
+    sb->buf[len]='\0';
 }
 size_t strbuf_avail(const struct strbuf *sb)//ok
 {
@@ -106,64 +105,74 @@ size_t strbuf_avail(const struct strbuf *sb)//ok
 void strbuf_insert(struct strbuf *sb, size_t pos, const void *data, size_t len)//?
 {
     strbuf_grow(sb,len);
-    memmove(sb->buf+pos+len,sb->buf+pos-1,sb->len-pos+2);
-    memcpy(sb->buf+pos-1,(char*)data,len);
+    memmove(sb->buf+pos+len,sb->buf+pos,sb->len-pos);
+    memcpy(sb->buf+pos,(char*)data,len);
     strbuf_setlen(sb,sb->len+len);
 }
 void strbuf_ltrim(struct strbuf *sb)
 {
-    int slow=0;
-    for(int fast=0;fast<=sb->len;fast++)
+    while((sb->buf[0]==' '||sb->buf[0]=='\t')&&sb->buf[0]!='\0')
     {
-        if(sb->buf[fast]==' '||sb->buf[fast]=='\t')
-        {
-            sb->buf[slow]=sb->buf[fast];
-            slow++;
-        }
+        memmove(sb->buf,sb->buf+1,sb->len-1);
+        sb->len--;
     }
+    // int slow=0;
+    // for(int fast=0;fast<=sb->len;fast++)
+    // {
+    //     if(sb->buf[fast]==' '||sb->buf[fast]=='\t')
+    //     {
+    //         sb->buf[slow]=sb->buf[fast];
+    //         slow++;
+    //     }
+    // }
 }
 void strbuf_rtrim(struct strbuf *sb)
 {
-    int slow=0;
-    for(int fast=sb->len;fast<=sb->alloc;fast++)
+    while((sb->buf[sb->len-1]==' '||sb->buf[sb->len-1]=='\t')&&sb->buf[sb->len-1]!='\0')
     {
-        if(sb->buf[fast]==' '||sb->buf[fast]=='\t')
-        {
-            sb->buf[slow]=sb->buf[fast];
-            slow++;
-        }
+        sb->len--;
     }
+    sb->buf[sb->len]='\0';
+    // int slow=0;
+    // for(int fast=sb->len;fast<=sb->alloc;fast++)
+    // {
+    //     if(sb->buf[fast]==' '||sb->buf[fast]=='\t')
+    //     {
+    //         sb->buf[slow]=sb->buf[fast];
+    //         slow++;
+    //     }
+    // }
 }
 void strbuf_remove(struct strbuf *sb, size_t pos, size_t len)
 {
-    memmove(sb->buf+pos-1,sb->buf+pos+len-1,sb->len-(pos-1)-len+1);
+    memmove(sb->buf+pos,sb->buf+pos+len,sb->len-pos-len);
     strbuf_setlen(sb,sb->len-len);
 }
 ssize_t strbuf_read(struct strbuf *sb, int fd, size_t hint)
 {
     strbuf_grow(sb,hint?hint:8192);
-    int ch=0;
     FILE *fp=fdopen(fd,"r");
+    char ch=getc(fp);
     while (ch!=EOF)
     {
-        ch=getc(fp);
         strbuf_addch(sb,ch);
+        ch=getc(fp);
     }
     return sb->len;
 }
 int strbuf_getline(struct strbuf *sb, FILE *fp)
 {
-    int ch=0;
+    char ch=getc(fp);
     while (ch!=EOF&&ch!='\n')
     {
-        ch=getc(fp);
         strbuf_addch(sb,ch);
+        ch=getc(fp);
     } 
     return sb->len;
 }
 struct strbuf **strbuf_split_buf(const char *str, size_t len, int terminator, int max)
 {
-
+    struct strbuf **a=(struct strbuf**)malloc(sizeof(struct strbuf*)*(max+1));
 }
 bool strbuf_begin_judge(char* target_str, const char* str, int strlen)
 {
