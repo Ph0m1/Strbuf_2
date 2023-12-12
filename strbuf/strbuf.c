@@ -173,6 +173,25 @@ int strbuf_getline(struct strbuf *sb, FILE *fp)
 struct strbuf **strbuf_split_buf(const char *str, size_t len, int terminator, int max)
 {
     struct strbuf **a=(struct strbuf**)malloc(sizeof(struct strbuf*)*(max+1));
+    int n=0,num=0,i=0;
+    for(i;i<len;i++)
+    {
+        if(str[i]==terminator)
+        {
+            a[num]=str+n;
+            a[num]->len=i-n;
+            n=i;
+            num++;
+        }
+        if(num==max)
+        {
+            break;
+        }
+    }
+    a[num]=str+i;
+    a[num]->len=len-i;
+    a[num+1]=NULL;
+    return a;
 }
 bool strbuf_begin_judge(char* target_str, const char* str, int strlen)
 {
