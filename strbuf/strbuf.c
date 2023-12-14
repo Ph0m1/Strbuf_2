@@ -178,9 +178,13 @@ struct strbuf **strbuf_split_buf(const char *str, size_t len, int terminator, in
     {
         if(str[i]==terminator)
         {
-            a[num]=str+n;
+            a[num]=(struct strbuf*)malloc(sizeof(struct strbuf));
             a[num]->len=i-n;
-            n=i;
+            a[num]->alloc=i-n+1;
+            a[num]->buf=(char*)malloc(sizeof(char)*(a[num]->len+1));
+            memcpy(a[num]->buf,str+n,a[num]->len);
+            a[num]->buf[a[num]->len]='\0';
+            n=i+1;
             num++;
         }
         if(num==max)
@@ -188,16 +192,30 @@ struct strbuf **strbuf_split_buf(const char *str, size_t len, int terminator, in
             break;
         }
     }
-    a[num]=str+i;
-    a[num]->len=len-i;
+    a[num]=(struct strbuf*)malloc(sizeof(struct strbuf));
+    a[num]->len=len-n;
+    a[num]->alloc=len-n+1;
+    a[num]->buf=(char*)malloc(sizeof(char)*(a[num]->len+1));
+    memcpy(a[num]->buf,str+n,a[num]->len);
+    a[num]->buf[a[num]->len]='\0';
     a[num+1]=NULL;
     return a;
 }
 bool strbuf_begin_judge(char* target_str, const char* str, int strlen)
 {
-
+    if(memcmp(str,target_str,strlen)==0||strlen==0)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 char* strbuf_get_mid_buf(char* target_buf, int begin, int end, int len)
 {
-
+    char*a=(char*)malloc(sizeof(char)*(end-begin));
+    memcpy(a,target_buf+begin,end-begin);
+    a[end+1]='\0';
+    return a;
 }
